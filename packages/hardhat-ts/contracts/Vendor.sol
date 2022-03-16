@@ -17,8 +17,9 @@ contract Vendor is Ownable {
   }
 
   function buyTokens() external payable {
-    uint256 tokensToTransfer = msg.value * 100;
-    yourToken.transfer(msg.sender, tokensToTransfer);
+    uint256 tokensToTransfer = msg.value * tokensPerEth;
+    bool tokensWhereTransfered = yourToken.transfer(msg.sender, tokensToTransfer);
+    require(tokensWhereTransfered, 'Could not transfer tokens, because ETH sucks you will still be charged fees');
     emit BuyTokens(msg.sender, msg.value, tokensToTransfer);
   }
 
@@ -27,5 +28,10 @@ contract Vendor is Ownable {
     require(success, 'Unable to withdraw');
   }
 
-  // ToDo: create a sellTokens() function:
+  function sellTokens(uint256 amount) external {
+    bool success = yourToken.transferFrom(msg.sender, address(this), amount);
+    require(success, 'Transfer failed, maybe not approved?');
+    (bool payedSeller, ) = msg.sender.call{value: amount / tokensPerEth}('');
+    require(payedSeller, 'Could not pay the seller');
+  }
 }
